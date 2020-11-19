@@ -35,6 +35,9 @@ struct Font {
   int32_t LnSpacingOff{};
   int32_t CapHeightOff{};
   int32_t DescentPadding{-1}; // -1 for automatic
+  int32_t HeightConstant{17};
+  int32_t DesiredSpacing{}; // dummy
+  int32_t ActualSpacing{}; // dummy
   // Tbl Specific - also by config
   uint32_t LnSpacing{};
   uint32_t CapHeight{};

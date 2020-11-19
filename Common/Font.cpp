@@ -1,5 +1,6 @@
 #include "Font.hpp"
 
+#include <math.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
@@ -10,7 +11,7 @@ void Font::Clear() {
   Pals.clear();
   Faces.clear();
   Size = 0;
-  LnSpacingOff = 0;
+  LnSpacingOff = 2;
   CapHeightOff = 0;
   DescentPadding = -1;
   LnSpacing = 0;
@@ -176,11 +177,13 @@ void Font::RenderGlyphs() {
     MaxH = max(MaxH, G->Bmp.Height());
   }
   if (!LnSpacing)
-    LnSpacing = Size + LnSpacingOff - MaxDescent;
-  if (LnSpacing < MaxH)
-    Warn("The maximum height (%zu) of newly generated glyphs is larger than LnSpacing (%u)", MaxH, LnSpacing);
+    LnSpacingOff = 0;
+    LnSpacing = ceil((float)(MaxH - MaxDescent * 10 / HeightConstant)) + LnSpacingOff;
+    ActualSpacing = HeightConstant * LnSpacing / 10;
+  if (ActualSpacing < MaxH)
+    Warn("The maximum height (%zu) of newly generated glyphs is larger than Actual Spacing (%u)", MaxH, ActualSpacing);
   if (!CapHeight)
-    CapHeight = Size + CapHeightOff;
+    CapHeight = (Size + CapHeightOff) / 2;
 }
 
 pair<size_t, size_t> Font::Extent(wstring_view Str) {

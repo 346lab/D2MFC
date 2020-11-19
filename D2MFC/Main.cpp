@@ -1,6 +1,12 @@
 #include "../Common/Common.hpp"
 #include "../Common/Font.hpp"
 
+#include "rapidjson/document.h"
+
+#include <vector>
+#include <iostream>
+#include <fstream>
+
 template<class T>
 T Parse(const char* S, const char* Desc) {
   uintmax_t Res{};
@@ -16,36 +22,81 @@ T Parse(const char* S, const char* Desc) {
 }
 
 int main(int NArg, char* Args[]) {
-  if (NArg != 8) {
-    fprintf(stderr, "Incorrect command line.\n");
-    fprintf(stderr,
-      "\n"
-      "Create DC6 and TBL according to given font and codepoint range\n"
-      "\n"
-      "Usage: %s <FirstCodePoint> <LastCodePoint> <FontFacePath> <PointSize> <Palette>.dat <Out>.dc6 <Out>.tbl\n"
-      "Construct DC6 and TBL file using the specified font face and point size.\n"
-      "Note: The font must be supported by FreeType.\n"
-      "Use null as the palatte to encode as grayscale images.\n",
-      Args[0]
-    );
-    return EXIT_FAILURE;
-  }
+    string jsonname = "config.json";
+    if (NArg > 1) {
+        jsonname = Args[1];
+        fprintf(stdout, "%s specified.\n", Args[1]);
+    };
+
+    // dirty open a file in main
+    ifstream in(jsonname, ios::in);
+    if (!in)
+    {
+        cerr << "Error opening file" << endl;
+        return EXIT_FAILURE;
+    }
+    istreambuf_iterator<char> beg(in), end;
+    string json(beg, end);
+    in.close();
+
+    // shitty json lib here
+    rapidjson::Document d;
+    d.Parse(json.c_str());
+
+    if (!d.HasMember("filename")) {
+        fprintf(stderr, "Invalid json.\n");
+        fprintf(stderr,
+            "\n"
+            "Create DC6 and TBL according to given font and codepoint range\n"
+            "\n"
+            "Usage: %s **params moved to json**\n"
+            "Construct DC6 and TBL file using the specified font face and point size.\n"
+            "Note: The font must be supported by FreeType.\n"
+            "Use null as the palatte to encode as grayscale images.\n",
+            Args[0]
+        );
+        return EXIT_FAILURE;
+    }
   Font Fnt;
-  auto First = Parse<uint16_t>(Args[1], "<FirstCodePoint>");
-  auto Last = Parse<uint16_t>(Args[2], "<LastCodePoint>");
-  auto FacePath = Args[3];
-  auto Size = Parse<uint16_t>(Args[4], "<PointSize>");
-  auto PalPath = Args[5];
-  auto Dc6Path = Args[6];
-  auto TblPath = Args[7];
+
+  auto FacePath = d["path"].GetString();
+  uint16_t Size = d["size"].GetInt();
+  auto PalPath = d["pal"].GetString();
+  auto Dc6Path = d["dc6name"].GetString();
+  auto TblPath = d["tblname"].GetString();
+
+  // Build a list with your free-to-waste RAM
+  vector<uint16_t> glyphlist;
+
+  // Juse werk snippet for parsing ranges
+  const rapidjson::Value& h = d["ranges"];
+  for (rapidjson::Value::ConstValueIterator v_iter = h.Begin();
+      v_iter != h.End(); ++v_iter)
+  {
+      const rapidjson::Value& field = *v_iter;
+      for (rapidjson::Value::ConstMemberIterator m_iter = field.MemberBegin();
+          m_iter != field.MemberEnd(); ++m_iter)
+      {
+          auto start = m_iter->value[0].GetInt();
+          auto end = m_iter->value[1].GetInt();
+          for (auto i = (unsigned) start; i <= (unsigned) end; i++)
+              glyphlist.push_back(i);
+          break;
+      }
+  }
+
+  auto boolaa = d["aa"].GetBool(); // currently global AA
+  //int bg = d["bgColor"][0].GetInt();
+
   printf("Preparing glyphs...\n");
   Fnt.Size = Size;
   Fnt.Faces.emplace_back(FacePath);
-  for (auto Ch = (unsigned) First; Ch <= Last; ++Ch) {
+  for (auto it = glyphlist.cbegin(); it != glyphlist.cend(); it++) {
+    uint16_t Ch = *it;
     auto& G = Fnt.Glyphs[Ch];
     G.reset(new FontGlyph);
     G->Char = Ch;
-    G->AntiAliasing = false;
+    G->AntiAliasing = boolaa;
     G->Size = Size;
     G->FaceIdx = 0;
     G->HasBmp = false;

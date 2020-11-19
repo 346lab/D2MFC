@@ -1,0 +1,39 @@
+
+# A config for D2MFC - Diablo II mordenized Font creator
+filename1: "font16"
+first1: 0x0000
+last1: 0x00fe
+path1: 'C:\Windows\Fonts\consola.ttf'
+size1: 16
+pal1: 'act1-fechar.dat'
+
+filename: "font16"                    # extension is automacitally determined
+leadingOffset: 0                      # global plus value on automatic leading
+descentPadding: null                  # if given, manually scpeficy value (maxDescent) of image padding for descent support
+palettes: ["act1.dat", "fechar.dat"]  # palletes for font generation, leave default on most cases
+tblUnknownValue: 0                    # unknown value in tbl header, mostly 0x00
+capHeightOffset: 0                    # cap height in tbl header: "size[0] + offset"
+partitonConfig:
+  # Leading (Line spacing) depends on first partition font size: "size[0] + leadingoffset - maxDescent"
+    - # Latin: 0000 - 00FE
+      start: 0x0000
+      end: 0x00FE
+      fontFace: 'C:\Windows\Fonts\consola.ttf' # need specify actual file for now
+      size: 16 # this size is pixelized size instead of point size
+      aa: true # anti-aliasing switch
+      glyphColor: 0xffffff
+      bgColor: 0x000000
+      tblUnknownValueTwo: 0 # unknown value in tbl entry, may vary, 0x00 should be fine
+      sharpeningLevel: null # not implemented yet: a fix for bad hinting
+      extraConfig:
+      - reservel: null
+        reserve2: null
+    - # Universal: 0100 - FFFE
+      start: 0x0100
+      end: 0xFFFE
+      fontFace: 'C:\Windows\Fonts\msyh.ttc'
+      size: 16
+      aa: true
+      glyphColor: 0xffffff
+      bgcolor: 0x000000
+      tblUnknownValueTwo: 0
