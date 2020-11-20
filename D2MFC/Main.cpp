@@ -61,6 +61,8 @@ int main(int NArg, char* Args[]) {
 
   auto FacePath = d["path"].GetString();
   uint16_t Size = d["size"].GetInt();
+  auto HeightConstant = d["leadingfactor"].GetInt();
+  auto LnSpacingOff = d["leadingoffset"].GetInt();
   auto PalPath = d["pal"].GetString();
   auto Dc6Path = d["dc6name"].GetString();
   auto TblPath = d["tblname"].GetString();
@@ -90,6 +92,8 @@ int main(int NArg, char* Args[]) {
 
   printf("Preparing glyphs...\n");
   Fnt.Size = Size;
+  Fnt.HeightConstant = HeightConstant;
+  Fnt.LnSpacingOff = LnSpacingOff;
   Fnt.Faces.emplace_back(FacePath);
   for (auto it = glyphlist.cbegin(); it != glyphlist.cend(); it++) {
     uint16_t Ch = *it;

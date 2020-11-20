@@ -177,9 +177,8 @@ void Font::RenderGlyphs() {
     MaxH = max(MaxH, G->Bmp.Height());
   }
   if (!LnSpacing)
-    LnSpacingOff = 0;
     LnSpacing = ceil((float)(MaxH - MaxDescent * 10 / HeightConstant)) + LnSpacingOff;
-    ActualSpacing = HeightConstant * LnSpacing / 10;
+    auto ActualSpacing = HeightConstant * LnSpacing / 10;
   if (ActualSpacing < MaxH)
     Warn("The maximum height (%zu) of newly generated glyphs is larger than Actual Spacing (%u)", MaxH, ActualSpacing);
   if (!CapHeight)

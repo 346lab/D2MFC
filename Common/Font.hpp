@@ -32,12 +32,10 @@ struct Font {
   vector<Palette> Pals{};
   vector<string> Faces{};
   uint32_t Size{};          // The first entry
-  int32_t LnSpacingOff{};
-  int32_t CapHeightOff{};
+  int32_t LnSpacingOff{0};
+  int32_t CapHeightOff{0};
   int32_t DescentPadding{-1}; // -1 for automatic
-  int32_t HeightConstant{17};
-  int32_t DesiredSpacing{}; // dummy
-  int32_t ActualSpacing{}; // dummy
+  int32_t HeightConstant{14}; // 14 ENG 15 JPN 17 CHI
   // Tbl Specific - also by config
   uint32_t LnSpacing{};
   uint32_t CapHeight{};

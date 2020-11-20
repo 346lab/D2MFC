@@ -2,16 +2,22 @@
     "filename": "font16",
     "dc6name": "font16.dc6",
     "tblname": "font16.tbl",
+
+	"leadingfactor": 17,
+    "leadingoffset": 0,
+	"pal": "act1-fechar.dat",
+
     "ranges": [
         {"range": [0,255], "note":"Latin"},
         {"range": [1024,1327], "note":"Cyr"},
-        {"range": [12288,12591], "note":"CJ part1"},
-        {"range": [19968,40959], "note":"CJ part2"},
-        {"range": [65280,65519], "note":"FF00—FFEF Halfwidth and Fullwidth Forms"}
+        {"range": [12288,12591], "note":"CJ part"},
+        {"range": [19968,40959], "note":"CJK Ideograph"},
+        {"range": [65280,65519], "note":"FF00-FFEF Halfwidth and Fullwidth Forms"}
     ],
-	"bgColorz": [0,0,0],
     "path": "C:\\Windows\\Fonts\\simsun.ttc",
+    "path_": ".\\Cascadia.ttf",
     "size": 14,
+	"bgColorz": [0,0,0],
     "aa": false,
-	"pal": "act1-fechar.dat"
+    "EOF": ""
 }
