@@ -35,8 +35,10 @@ struct Font {
   int32_t LnSpacingOff{0};
   int32_t CapHeightOff{0};
   int32_t DescentPadding{-1}; // -1 for automatic
-  int32_t HeightConstant{14}; // 14 ENG 15 JPN 17 CHI
+  int32_t OriginOffset{ 0 }; // pop
   // Tbl Specific - also by config
+  int32_t DescentOffset{ 0 }; // pop
+  int32_t HeightConstant{ 14 }; // 14 ENG 15 JPN 17 CHI
   uint32_t LnSpacing{};
   uint32_t CapHeight{};
   uint16_t UnkHZ{};

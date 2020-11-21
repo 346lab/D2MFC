@@ -11,7 +11,7 @@ void Font::Clear() {
   Pals.clear();
   Faces.clear();
   Size = 0;
-  LnSpacingOff = 2;
+  LnSpacingOff = 1;
   CapHeightOff = 0;
   DescentPadding = -1;
   LnSpacing = 0;
@@ -150,7 +150,7 @@ void Font::RenderGlyphs() {
   for (auto& G : ToRender)
     if (G->HasBmp == 2)
       MaxDescent = max(MaxDescent, G->Descent());
-  auto MaxPadding = ~DescentPadding ? DescentPadding : MaxDescent;
+  auto MaxPadding = ~DescentPadding ? DescentPadding : MaxDescent + OriginOffset + DescentOffset;
   auto MaxH = size_t{};
   for (auto& G : ToRender) {
     if (G->HasBmp != 2)
@@ -171,7 +171,7 @@ void Font::RenderGlyphs() {
       }
       auto Bmp = Bitmap(W, H);
       Bmp.Fill({});
-      Bmp.Draw(G->Bmp, G->BearX, 0);
+      Bmp.Draw(G->Bmp, G->BearX, 0 + OriginOffset);
       G->Bmp = move(Bmp);
     }
     MaxH = max(MaxH, G->Bmp.Height());
@@ -182,7 +182,7 @@ void Font::RenderGlyphs() {
   if (ActualSpacing < MaxH)
     Warn("The maximum height (%zu) of newly generated glyphs is larger than Actual Spacing (%u)", MaxH, ActualSpacing);
   if (!CapHeight)
-    CapHeight = (Size + CapHeightOff) / 2;
+    CapHeight = 1; // CapHeightOff + (Size / 2);
 }
 
 pair<size_t, size_t> Font::Extent(wstring_view Str) {

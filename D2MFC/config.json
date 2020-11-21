@@ -3,20 +3,19 @@
     "dc6name": "font16.dc6",
     "tblname": "font16.tbl",
 
-	"leadingfactor": 17,
-    "leadingoffset": 0,
-	"pal": "act1-fechar.dat",
+	"leadingfactor": 14,
+    "LeadingOffset": 1,
+    "CapHeight": 1,
+    "OriginOffset": 0,
+	"pal": "Resources\\act1-fechar.dat",
 
     "ranges": [
-        {"range": [0,255], "note":"Latin"},
-        {"range": [1024,1327], "note":"Cyr"},
-        {"range": [12288,12591], "note":"CJ part"},
-        {"range": [19968,40959], "note":"CJK Ideograph"},
+        {"range": [0,255], "note":"Latin + Supp"},
+        {"range": [1024,1327], "note":"Cyrillic + Supp"},
         {"range": [65280,65519], "note":"FF00-FFEF Halfwidth and Fullwidth Forms"}
     ],
-    "path": "C:\\Windows\\Fonts\\simsun.ttc",
-    "path_": ".\\Cascadia.ttf",
-    "size": 14,
+    "path": "C:\\Windows\\Fonts\\consola.ttf",
+    "size": 13,
 	"bgColorz": [0,0,0],
     "aa": false,
     "EOF": ""
