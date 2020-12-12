@@ -88,6 +88,7 @@ void Font::RenderGlyphs() {
     auto FtgIdx = FT_Get_Char_Index(Face, G->Char);
     if (!FtgIdx) {
       Warn("No glyph found for char (%u), a dummy (1x1) bitmap will be generated", G->Char);
+      G->Valid = false;
       G->BearX = 0;
       G->BearY = 1;
       G->Advance = 1;
@@ -103,6 +104,7 @@ void Font::RenderGlyphs() {
       auto& Ftb = Face->glyph->bitmap;
       if (!Ftb.width || !Ftb.rows) {
         Warn("Empty bitmap generated for char (%u), a dummy (1x1) bitmap will be generated", G->Char);
+        G->Valid = false;
         G->BearX = 0;
         G->BearY = 1;
         G->Advance = Ftg->advance.x >> 6;
@@ -260,7 +262,7 @@ void Font::Dump(Sprite& Spr, FontTable& Tbl) {
       C.Height = Cast<uint8_t>(G->Bmp.Height(), "The height of char (%u) is too large (%zu)", Ch, G->Bmp.Height());
       C.UnkTwo = G->UnkTwo;
       C.UnkCZ2 = 0;
-      C.Dc6Index = (uint16_t) Id;
+      C.Dc6Index = G->Valid == true ? (uint16_t) Id : (uint16_t) 0;
       C.ZPad1 = 0;
       C.ZPad2 = 0;
       Spr[0][Id] = move(G->Bmp);

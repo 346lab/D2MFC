@@ -23,6 +23,8 @@ struct FontGlyph {
   uint32_t    Advance{};
   Bitmap      Bmp{};
 
+  bool        Valid{ true }; // valid glyph
+
   constexpr int32_t Descent() { return (int32_t) Bmp.Height() - BearY; }
 };
 

@@ -12,11 +12,12 @@
     "ranges": [
         {"range": [0,255], "note":"Latin + Supp"},
         {"range": [1024,1327], "note":"Cyrillic + Supp"},
-        {"range": [65280,65519], "note":"FF00-FFEF Halfwidth and Fullwidth Forms"}
+        {"range": [19968,19998], "note":"4E00-9FFF CJK Unified Ideographs"}
     ],
-    "path": "C:\\Windows\\Fonts\\consola.ttf",
-    "size": 13,
+    "path": "C:\\Windows\\Fonts\\msyh.ttc",
+    "path_": "test.ttf",
+    "size": 16,
 	"bgColorz": [0,0,0],
-    "aa": false,
+    "aa": true,
     "EOF": ""
 }
