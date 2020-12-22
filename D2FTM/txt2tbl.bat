@@ -1,0 +1,14 @@
+D2FTM.exe font16.txt
+D2FTM.exe font24.txt
+D2FTM.exe font30.txt
+D2FTM.exe font42.txt
+D2FTM.exe font6.txt
+D2FTM.exe font8.txt
+D2FTM.exe fontexocet10.txt
+D2FTM.exe fontexocet8.txt
+D2FTM.exe fontformal10.txt
+D2FTM.exe fontformal11.txt
+D2FTM.exe fontformal12.txt
+D2FTM.exe fontingamechat.txt
+D2FTM.exe fontridiculous.txt
+D2FTM.exe ReallyTheLastSucker.txt
