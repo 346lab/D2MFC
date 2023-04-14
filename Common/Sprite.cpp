@@ -132,7 +132,7 @@ void Sprite::ReadDc6(const char* Path, const Palette& Pal, uint32_t Mask) {
 #ifdef BMP_ALPHA
 void Sprite::SaveDc6(const char* Path, const Palette& Pal) {
 #else
-void Sprite::SaveDc6(const char* Path, const Palette& Pal, uint32_t Mask) {
+void Sprite::SaveDc6(const char* Path, const Palette& Pal, int32_t Dc6OffsetY, uint32_t Mask) {
 #endif
   Dc6Header Hdr;
   Hdr.Version = Dc6HdrVer;
@@ -155,7 +155,7 @@ void Sprite::SaveDc6(const char* Path, const Palette& Pal, uint32_t Mask) {
       Frm.Width = (uint32_t) Bmp.Width();
       Frm.Height = (uint32_t) Bmp.Height();
       Frm.OffsetX = 0;
-      Frm.OffsetY = 0;
+      Frm.OffsetY = Dc6OffsetY;
       Frm.Unk = 0;
       Offs[IDir][IFrm] = Cast<uint32_t>(File.Tell(), "The resulted DC6 file is too large (%zu bytes)", File.Size());
       File.Advance(sizeof(Dc6FrameHeader));

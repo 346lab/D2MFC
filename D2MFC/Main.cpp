@@ -68,6 +68,7 @@ int main(int NArg, char* Args[]) {
   auto PalPath = d["pal"].GetString();
   auto Dc6Path = d["dc6name"].GetString();
   auto TblPath = d["tblname"].GetString();
+  int32_t GlobalDc6OffsetY = d["Dc6OffsetY"].GetInt();
 
   // Build a list with your free-to-waste RAM
   vector<uint16_t> glyphlist;
@@ -119,7 +120,7 @@ int main(int NArg, char* Args[]) {
   FontTable Tbl;
   Fnt.Dump(Spr, Tbl);
   printf("Saving DC6...\n");
-  Spr.SaveDc6(Dc6Path, Pal);
+  Spr.SaveDc6(Dc6Path, Pal, GlobalDc6OffsetY);
   printf("Saving TBL...\n");
   Tbl.SaveTbl(TblPath);
   printf("All done\n");

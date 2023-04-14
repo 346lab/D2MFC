@@ -16,8 +16,8 @@ struct Dc6FrameHeader {
   uint32_t Flip;      // +00 - 1 if Flipped, 0 else
   uint32_t Width;     // +04
   uint32_t Height;    // +08
-  uint32_t OffsetX;   // +0c
-  uint32_t OffsetY;   // +10
+  int32_t OffsetX;   // +0c
+  int32_t OffsetY;   // +10
   uint32_t Unk;       // +14 - 0x00000000
   uint32_t NextBlock; // +18
   uint32_t Length;    // +1c
@@ -35,7 +35,7 @@ public:
   void SaveDc6(const char* Path, const Palette& Pal);
 #else
   void ReadDc6(const char* Path, const Palette& Pal, uint32_t Mask = 0x000000);
-  void SaveDc6(const char* Path, const Palette& Pal, uint32_t Mask = 0x000000);
+  void SaveDc6(const char* Path, const Palette& Pal, int32_t Dc6OffsetY = 0, uint32_t Mask = 0x000000);
 #endif
 private:
   using RcArray::NRow;

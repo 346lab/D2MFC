@@ -7,7 +7,8 @@
     "LeadingOffset": 1,
     "CapHeight": 1,
     "OriginOffset": 0,
-	"pal": "Resources\\act1-fechar.dat",
+    "Dc6OffsetY": 0,
+	"pal": "Resources\\static.dat",
 
     "ranges": [
         {"range": [0,255], "note":"Latin + Supp"},
