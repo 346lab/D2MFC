@@ -15,7 +15,7 @@ void Font::Clear() {
   CapHeightOff = 0;
   DescentPadding = -1;
   LnSpacing = 0;
-  CapHeight = 0;
+  CapHeight = -1;
   UnkHZ = 0;
 }
 
@@ -41,7 +41,7 @@ void Font::FromSprTbl(Sprite& Spr, FontTable& Tbl) {
     G->BearY = C.Height;
     G->Advance = C.Width;
     if (C.Dc6Index >= Spr.NFrm())
-      Abort("DC6 index (%u) is too large for char (%u): should be less than %zu", C.Dc6Index, G->Char, Spr.NFrm());
+      Abort("DC6 index (%u) is too large for char (%x): should be less than %zu", C.Dc6Index, G->Char, Spr.NFrm());
     G->Bmp = move(Spr[0][C.Dc6Index]);
   }
 }
@@ -56,11 +56,11 @@ void Font::RenderGlyphs() {
     if (G->HasBmp)
       continue;
     if (G->FaceIdx < 0)
-      Abort("No font face specified for char (%u)", Ch);
+      Abort("No font face specified for char (%x)", Ch);
     if ((size_t) G->FaceIdx >= Faces.size())
-      Abort("Face index for char (%u) is too large: %d > %zu", Ch, G->FaceIdx, Faces.size());
+      Abort("Face index for char (%x) is too large: %d > %zu", Ch, G->FaceIdx, Faces.size());
     if (!Glyphs[Ch]->Size)
-      Abort("The size of char (%u) should not be 0", Ch);
+      Abort("The size of char (%x) should not be 0", Ch);
     ToRender.emplace_back(Glyphs[Ch].get());
   }
   sort(ToRender.begin(), ToRender.end(),
@@ -87,14 +87,14 @@ void Font::RenderGlyphs() {
     }
     auto FtgIdx = FT_Get_Char_Index(Face, G->Char);
     if (!FtgIdx) {
-      Warn("No glyph found for char (%u), a dummy (1x1) bitmap will be generated", G->Char);
+      Warn("No glyph found for char (%x), a dummy (1x1) bitmap will be generated", G->Char);
       G->Valid = false;
       G->BearX = 0;
       G->BearY = 1;
       G->Advance = 1;
       G->HasBmp = 1;
       G->Bmp.Resize(1, 1);
-      G->Bmp.Fill({});
+      G->Bmp.Fill({}); // G->BgCol
     }
     else {
       FtAss(FT_Load_Glyph(Face, FtgIdx, G->AntiAliasing ? FT_LOAD_DEFAULT : FT_LOAD_TARGET_MONO | FT_LOAD_MONOCHROME));
@@ -103,14 +103,14 @@ void Font::RenderGlyphs() {
       auto& Ftg = Face->glyph;
       auto& Ftb = Face->glyph->bitmap;
       if (!Ftb.width || !Ftb.rows) {
-        Warn("Empty bitmap generated for char (%u), a dummy (1x1) bitmap will be generated", G->Char);
-        G->Valid = false;
+        Warn("Empty bitmap generated for char (%x), a dummy (1x1) bitmap will be generated", G->Char);
+        G->Valid = G->Char == 0x20 || 0x3000 ? true : false;
         G->BearX = 0;
         G->BearY = 1;
         G->Advance = Ftg->advance.x >> 6;
         G->HasBmp = 1;
         G->Bmp.Resize(1, 1);
-        G->Bmp.Fill({});
+        G->Bmp.Fill({}); // G->BgCol
       }
       else {
         G->BearX = Ftg->bitmap_left;
@@ -121,12 +121,13 @@ void Font::RenderGlyphs() {
         if (G->AntiAliasing) {
           for (auto i = 0u; i < Ftb.rows; ++i)
             for (auto j = 0u; j < Ftb.width; ++j) {
-              auto Col = Ftb.buffer[i * Ftb.pitch + j];
-              G->Bmp[i][j].R = Col;
-              G->Bmp[i][j].G = Col;
-              G->Bmp[i][j].B = Col;
+              auto Col = static_cast<unsigned char>(Ftb.buffer[i * Ftb.pitch + j]);
+              // use Col (0..255) as alpha to blend FgCol over BgCol
+              G->Bmp[i][j].R = static_cast<unsigned char>((G->FgCol.R * (int)Col + G->BgCol.R * (255 - (int)Col)) / 255);
+              G->Bmp[i][j].G = static_cast<unsigned char>((G->FgCol.G * (int)Col + G->BgCol.G * (255 - (int)Col)) / 255);
+              G->Bmp[i][j].B = static_cast<unsigned char>((G->FgCol.B * (int)Col + G->BgCol.B * (255 - (int)Col)) / 255);
 #ifdef BMP_ALPHA
-              G->Bmp[i][j].A = Col ? 255 : 0;
+              G->Bmp[i][j].A = Col;
 #endif
             }
         }
@@ -134,9 +135,9 @@ void Font::RenderGlyphs() {
           for (auto i = 0u; i < Ftb.rows; ++i)
             for (auto j = 0u; j < Ftb.width; ++j) {
               auto Col = Ftb.buffer[i * Ftb.pitch + (j >> 3)] & (1u << ((j & 7) ^ 7));
-              G->Bmp[i][j].R = Col ? 255 : 0;
-              G->Bmp[i][j].G = Col ? 255 : 0;
-              G->Bmp[i][j].B = Col ? 255 : 0;
+              G->Bmp[i][j].R = Col ? G->FgCol.R : G->BgCol.R;
+              G->Bmp[i][j].G = Col ? G->FgCol.G : G->BgCol.G;
+              G->Bmp[i][j].B = Col ? G->FgCol.B : G->BgCol.B;
 #ifdef BMP_ALPHA
               G->Bmp[i][j].A = Col ? 255 : 0;
 #endif
@@ -158,21 +159,21 @@ void Font::RenderGlyphs() {
     if (G->HasBmp != 2)
       continue;
     if (G->BearX < 0) {
-      Warn("BearX is negative (%d) for char (%u), set it to 0", G->BearX, G->Char);
+      Warn("BearX is negative (%d) for char (%x), set it to 0", G->BearX, G->Char);
       G->BearX = 0;
     }
     if (G->BearX || G->Descent() != MaxPadding) {
       auto W = G->BearX + (int32_t) G->Bmp.Width();
       auto H = G->BearY + MaxPadding;
       if (W <= 0 || H <= 0) {
-        Warn("The bitmap of char (%u) is completely cropped out, a dummy (1x1) bitmap will be generated", G->Char);
+        Warn("The bitmap of char (%x) is completely cropped out, a dummy (1x1) bitmap will be generated", G->Char);
         G->HasBmp = 1;
         G->Bmp.Resize(1, 1);
-        G->Bmp.Fill({});
+        G->Bmp.Fill(G->BgCol);
         continue;
       }
       auto Bmp = Bitmap(W, H);
-      Bmp.Fill({});
+      Bmp.Fill(G->BgCol);
       Bmp.Draw(G->Bmp, G->BearX, 0 + OriginOffset);
       G->Bmp = move(Bmp);
     }
@@ -183,8 +184,8 @@ void Font::RenderGlyphs() {
     auto ActualSpacing = HeightConstant * LnSpacing / 10;
   if (ActualSpacing < MaxH)
     Warn("The maximum height (%zu) of newly generated glyphs is larger than Actual Spacing (%u)", MaxH, ActualSpacing);
-  if (!CapHeight)
-    CapHeight = 1; // CapHeightOff + (Size / 2);
+  //if (CapHeight = -1) CapHeight = 1; // CapHeight = CapHeightOff + (Size / 2);?
+  CapHeight = (~CapHeight ? CapHeight : 1) + CapHeightOff;
 }
 
 pair<size_t, size_t> Font::Extent(wstring_view Str) {
@@ -255,14 +256,14 @@ void Font::Dump(Sprite& Spr, FontTable& Tbl) {
       auto& C = Tbl.Chrs[Id];
       auto& G = Glyphs[Ch];
       if (!G->HasBmp)
-        Abort("No bitmap for char (%u)", Ch);
+        Abort("No bitmap for char (%x)", Ch);
       C.Char = G->Char;
       C.UnkCZ1 = 0;
-      C.Width = Cast<uint8_t>(G->Advance, "The advance of char (%u) is too large (%u)", Ch, G->Advance);
-      C.Height = Cast<uint8_t>(G->Bmp.Height(), "The height of char (%u) is too large (%zu)", Ch, G->Bmp.Height());
+      C.Width = Cast<uint8_t>(G->Advance, "The advance of char (%x) is too large (%u)", Ch, G->Advance);
+      C.Height = Cast<uint8_t>(G->Bmp.Height(), "The height of char (%x) is too large (%zu)", Ch, G->Bmp.Height());
       C.UnkTwo = G->UnkTwo;
       C.UnkCZ2 = 0;
-      C.Dc6Index = G->Valid == true ? (uint16_t) Id : (uint16_t) 0;
+      C.Dc6Index = G->Valid == true ? (uint16_t) Id : (uint16_t) G->InvalidGlyphIndex;
       C.ZPad1 = 0;
       C.ZPad2 = 0;
       Spr[0][Id] = move(G->Bmp);

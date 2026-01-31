@@ -1,7 +1,7 @@
 #include "../Common/Common.hpp"
 #include "../Common/Font.hpp"
 
-#include "rapidjson/document.h"
+#include <yaml-cpp/yaml.h>
 
 #include <vector>
 #include <iostream>
@@ -22,34 +22,29 @@ T Parse(const char* S, const char* Desc) {
 }
 
 int main(int NArg, char* Args[]) {
-    string jsonname = "config.json";
+    string cfgname = "config.yaml";
     if (NArg > 1) {
-        jsonname = Args[1];
+        cfgname = Args[1];
         fprintf(stdout, "%s specified.\n", Args[1]);
     };
 
-    // dirty open a file in main
-    ifstream in(jsonname, ios::in);
-    if (!in)
-    {
-        cerr << "Error opening file" << endl;
-        return EXIT_FAILURE;
+    // open config file
+    YAML::Node d;
+    try {
+      d = YAML::LoadFile(cfgname);
     }
-    istreambuf_iterator<char> beg(in), end;
-    string json(beg, end);
-    in.close();
+    catch (const YAML::BadFile& e) {
+      cerr << "Error opening config file: " << cfgname << endl;
+      return EXIT_FAILURE;
+    }
 
-    // shitty json lib here
-    rapidjson::Document d;
-    d.Parse(json.c_str());
-
-    if (!d.HasMember("filename")) {
-        fprintf(stderr, "Invalid json.\n");
+    if (!d["filename"]) {
+        fprintf(stderr, "Invalid config.\n");
         fprintf(stderr,
             "\n"
             "Create DC6 and TBL according to given font and codepoint range\n"
             "\n"
-            "Usage: %s **params moved to json**\n"
+            "Usage: %s **params moved to config.yaml**\n"
             "Construct DC6 and TBL file using the specified font face and point size.\n"
             "Note: The font must be supported by FreeType.\n"
             "Use null as the palatte to encode as grayscale images.\n",
@@ -59,70 +54,105 @@ int main(int NArg, char* Args[]) {
     }
   Font Fnt;
 
-  auto FacePath = d["path"].GetString();
-  uint16_t Size = d["size"].GetInt();
-  auto HeightConstant = d["leadingfactor"].GetInt();
-  auto LnSpacingOff = d["LeadingOffset"].GetInt();
-  auto CapHeight = d["CapHeight"].GetInt();
-  auto OriginOffset = d["OriginOffset"].GetInt();
-  auto PalPath = d["pal"].GetString();
-  auto Dc6Path = d["dc6name"].GetString();
-  auto TblPath = d["tblname"].GetString();
-  int32_t GlobalDc6OffsetY = d["Dc6OffsetY"].GetInt();
+  // Top-level/legacy values
+  auto baseName = d["filename"].as<string>();
+  auto heightConstant = d["leadingFactor"] ? d["leadingFactor"].as<int>() : Fnt.HeightConstant;
+  auto lnSpacingOff = d["leadingOffset"] ? d["leadingOffset"].as<int>() : Fnt.LnSpacingOff;
+  auto capHeight = d["capHeight"] ? d["capHeight"].as<int>() : -1;
+  auto capHeightOffset = d["capHeightOffset"] ? d["capHeightOffset"].as<int>() : Fnt.CapHeightOff;
+  auto originOffset = d["originOffset"] ? d["originOffset"].as<int>() : 0;
+  auto palPath = d["palette"] ? d["palette"].as<string>() : "static.pal";
+  auto dc6Path = d["dc6name"] ? d["dc6name"].as<string>() : (baseName + string(".dc6"));
+  auto tblPath = d["tblname"] ? d["tblname"].as<string>() : (baseName + string(".tbl"));
+  int32_t globalDc6OffsetY = d["dc6OffsetY"] ? d["dc6OffsetY"].as<int>() : 0;
+  int32_t descentPadding = Fnt.DescentPadding;
+  if (d["descentPadding"] && !d["descentPadding"].IsNull()) descentPadding = d["descentPadding"].as<int>();
+  int globalTblUnk = d["tblUnknownValue"] ? d["tblUnknownValue"].as<int>() : 0;
 
-  // Build a list with your free-to-waste RAM
-  vector<uint16_t> glyphlist;
-
-  // Juse werk snippet for parsing ranges
-  const rapidjson::Value& h = d["ranges"];
-  for (rapidjson::Value::ConstValueIterator v_iter = h.Begin();
-      v_iter != h.End(); ++v_iter)
-  {
-      const rapidjson::Value& field = *v_iter;
-      for (rapidjson::Value::ConstMemberIterator m_iter = field.MemberBegin();
-          m_iter != field.MemberEnd(); ++m_iter)
-      {
-          auto start = m_iter->value[0].GetInt();
-          auto end = m_iter->value[1].GetInt();
-          for (auto i = (unsigned) start; i <= (unsigned) end; i++)
-              glyphlist.push_back(i);
-          break;
-      }
-  }
-
-  auto boolaa = d["aa"].GetBool(); // currently global AA
-  //int bg = d["bgColor"][0].GetInt();
-
+  // Partition-based config (preferred)
   printf("Preparing glyphs...\n");
-  Fnt.Size = Size;
-  Fnt.HeightConstant = HeightConstant;
-  Fnt.LnSpacingOff = LnSpacingOff;
-  Fnt.CapHeight = CapHeight;
-  Fnt.OriginOffset = OriginOffset;
-  Fnt.Faces.emplace_back(FacePath);
-  for (auto it = glyphlist.cbegin(); it != glyphlist.cend(); it++) {
-    uint16_t Ch = *it;
-    auto& G = Fnt.Glyphs[Ch];
-    G.reset(new FontGlyph);
-    G->Char = Ch;
-    G->AntiAliasing = boolaa;
-    G->Size = Size;
-    G->FaceIdx = 0;
-    G->HasBmp = false;
+  bool firstPartition = true;
+  const YAML::Node partsNode = d["partitonConfig"] ? d["partitonConfig"] : (d["partitionConfig"] ? d["partitionConfig"] : YAML::Node());
+  if (partsNode) {
+    for (auto it = partsNode.begin(); it != partsNode.end(); ++it) {
+      auto p = *it;
+      auto start = p["start"].as<int>();
+      auto end = p["end"].as<int>();
+      auto facePath = p["fontFace"].as<string>();
+      auto Size = p["size"].as<int>();
+      auto aa = p["aa"] ? p["aa"].as<bool>() : true;
+      auto glyphColor = p["glyphColor"] ? p["glyphColor"].as<unsigned int>() : (d["glyphColor"] ? d["glyphColor"].as<unsigned int>() : 0xFFFFFFu);
+      auto bgColor = p["bgColor"] ? p["bgColor"].as<unsigned int>() : (d["bgColor"] ? d["bgColor"].as<unsigned int>() : 0x000000u);
+      auto tblTwo = p["tblUnknownValueTwo"] ? p["tblUnknownValueTwo"].as<uint8_t>() : (d["tblUnknownValueTwo"] ? d["tblUnknownValueTwo"].as<uint8_t>() : 1);
+      auto invalidIndex = p["invalidGlyphIndex"] ? p["invalidGlyphIndex"].as<uint16_t>() : (d["invalidGlyphIndex"] ? d["invalidGlyphIndex"].as<uint16_t>() : 1);
+
+      // register face and get index
+      int faceIdx = -1;
+      for (size_t fi = 0; fi < Fnt.Faces.size(); ++fi)
+        if (Fnt.Faces[fi] == facePath) { faceIdx = (int)fi; break; }
+      if (faceIdx < 0) { Fnt.Faces.emplace_back(facePath); faceIdx = (int)Fnt.Faces.size() - 1; }
+
+      if (firstPartition) { Fnt.Size = Size; firstPartition = false; }
+
+      for (auto ch = start; ch <= end; ++ch) {
+        auto& G = Fnt.Glyphs[ch];
+        if (!G) { G.reset(new FontGlyph); G->Char = (uint16_t)ch; }
+        G->AntiAliasing = aa;
+        G->Size = Size;
+        G->FaceIdx = faceIdx;
+        G->HasBmp = false;
+        G->UnkTwo = (uint8_t)tblTwo;
+        G->FgCol = Pixel{ (uint8_t)((glyphColor >> 16) & 0xFF), (uint8_t)((glyphColor >> 8) & 0xFF), (uint8_t)(glyphColor & 0xFF) };
+        G->BgCol = Pixel{ (uint8_t)((bgColor >> 16) & 0xFF), (uint8_t)((bgColor >> 8) & 0xFF), (uint8_t)(bgColor & 0xFF) };
+        G->InvalidGlyphIndex = invalidIndex;
+      }
+    }
   }
+  // Legacy ranges support
+  else if (d["ranges"]) {
+    auto FacePath = d["path"].as<string>();
+    auto Size = d["size"].as<int>();
+    Fnt.Faces.emplace_back(FacePath);
+    Fnt.Size = Size;
+    for (auto it = d["ranges"].begin(); it != d["ranges"].end(); ++it) {
+      auto node = *it;
+      if (node["range"]) {
+        auto start = node["range"][0].as<int>();
+        auto end = node["range"][1].as<int>();
+        for (auto ch = start; ch <= end; ++ch) {
+          auto& G = Fnt.Glyphs[ch];
+          G.reset(new FontGlyph);
+          G->Char = (uint16_t)ch;
+          G->AntiAliasing = d["aa"] ? d["aa"].as<bool>() : true;
+          G->Size = Size;
+          G->FaceIdx = 0;
+          G->HasBmp = false;
+        }
+      }
+    }
+  }
+
+  // apply top-level font params
+  Fnt.HeightConstant = heightConstant;
+  Fnt.LnSpacingOff = lnSpacingOff;
+  Fnt.CapHeight = capHeight;
+  Fnt.CapHeightOff = capHeightOffset;
+  Fnt.OriginOffset = originOffset;
+  Fnt.DescentPadding = descentPadding;
+  Fnt.UnkHZ = globalTblUnk;
   printf("Rendering glyphs...\n");
   Fnt.RenderGlyphs();
   printf("Reading palette...\n");
   Palette Pal;
-  Pal.ReadDat(PalPath);
+  Pal.ReadDat(palPath.data());
   printf("Dumping font...\n");
   Sprite Spr;
   FontTable Tbl;
   Fnt.Dump(Spr, Tbl);
   printf("Saving DC6...\n");
-  Spr.SaveDc6(Dc6Path, Pal, GlobalDc6OffsetY);
+  Spr.SaveDc6(dc6Path.data(), Pal, globalDc6OffsetY);
   printf("Saving TBL...\n");
-  Tbl.SaveTbl(TblPath);
+  Tbl.SaveTbl(tblPath.data());
   printf("All done\n");
   return 0;
 }

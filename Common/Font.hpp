@@ -24,8 +24,9 @@ struct FontGlyph {
   Bitmap      Bmp{};
 
   bool        Valid{ true }; // valid glyph
+  uint16_t    InvalidGlyphIndex{ 0 };
 
-  constexpr int32_t Descent() { return (int32_t) Bmp.Height() - BearY; }
+  constexpr int32_t Descent() const { return (int32_t)Bmp.Height() - BearY; }
 };
 
 struct Font {
