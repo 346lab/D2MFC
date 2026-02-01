@@ -85,6 +85,8 @@ int main(int NArg, char* Args[]) {
       auto bgColor = p["bgColor"] ? p["bgColor"].as<unsigned int>() : (d["bgColor"] ? d["bgColor"].as<unsigned int>() : 0x000000u);
       auto tblTwo = p["tblUnknownValueTwo"] ? p["tblUnknownValueTwo"].as<uint8_t>() : (d["tblUnknownValueTwo"] ? d["tblUnknownValueTwo"].as<uint8_t>() : 1);
       auto invalidIndex = p["invalidGlyphIndex"] ? p["invalidGlyphIndex"].as<uint16_t>() : (d["invalidGlyphIndex"] ? d["invalidGlyphIndex"].as<uint16_t>() : 1);
+      auto doOutlineGlyphs = p["doOutlineGlyphs"] ? p["doOutlineGlyphs"].as<bool>() : (d["doOutlineGlyphs"] ? d["doOutlineGlyphs"].as<bool>() : false);
+      auto outlineColor = p["outlineColor"] ? p["outlineColor"].as<unsigned>() : (d["outlineColor"] ? d["outlineColor"].as<unsigned int>() : 0x010101u);
 
       // register face and get index
       int faceIdx = -1;
@@ -105,6 +107,8 @@ int main(int NArg, char* Args[]) {
         G->FgCol = Pixel{ (uint8_t)((glyphColor >> 16) & 0xFF), (uint8_t)((glyphColor >> 8) & 0xFF), (uint8_t)(glyphColor & 0xFF) };
         G->BgCol = Pixel{ (uint8_t)((bgColor >> 16) & 0xFF), (uint8_t)((bgColor >> 8) & 0xFF), (uint8_t)(bgColor & 0xFF) };
         G->InvalidGlyphIndex = invalidIndex;
+        G->DoOutlineGlyphs = doOutlineGlyphs;
+        G->OutlineColor = outlineColor;
       }
     }
   }

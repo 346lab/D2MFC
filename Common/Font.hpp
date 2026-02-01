@@ -25,6 +25,8 @@ struct FontGlyph {
 
   bool        Valid{ true }; // valid glyph
   uint16_t    InvalidGlyphIndex{ 0 };
+  bool        DoOutlineGlyphs{false};
+  unsigned    OutlineColor{0x010101u};
 
   constexpr int32_t Descent() const { return (int32_t)Bmp.Height() - BearY; }
 };
