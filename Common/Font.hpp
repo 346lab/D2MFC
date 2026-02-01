@@ -47,12 +47,15 @@ struct Font {
   uint32_t LnSpacing{};
   uint32_t CapHeight{};
   uint16_t UnkHZ{};
+  bool DoBrightnessShift{false};
+  int32_t BrightnessShiftOffset{0};
+  vector<Pixel> PalGrayscaleColors;
 
   void Clear();
   void FromSprTbl(Sprite& Spr, FontTable& Tbl);
   //void ReadYml(const char* Path);
 
-  void RenderGlyphs();
+  void RenderGlyphs(const Palette* pal = nullptr);
   void Dump(Sprite& Spr, FontTable& Tbl);
 
   pair<size_t, size_t> Extent(wstring_view Str);

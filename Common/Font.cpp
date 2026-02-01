@@ -46,7 +46,7 @@ void Font::FromSprTbl(Sprite& Spr, FontTable& Tbl) {
   }
 }
 
-void Font::RenderGlyphs() {
+void Font::RenderGlyphs(const Palette* pal) {
   vector<FontGlyph*> ToRender;
   for (auto Ch = 0u; Ch < Glyphs.size(); ++Ch) {
     auto& G = Glyphs[Ch];
@@ -155,6 +155,29 @@ void Font::RenderGlyphs() {
       MaxDescent = max(MaxDescent, G->Descent());
   auto MaxPadding = ~DescentPadding ? DescentPadding : MaxDescent + OriginOffset + DescentOffset;
   auto MaxH = size_t{};
+  if (DoBrightnessShift && pal != nullptr)
+  {
+      // collect grayscale entries from palette and sort from dark to bright
+      PalGrayscaleColors.reserve(256);
+      // collect grayscale entries from palette, deduplicating by brightness
+      bool seen[256] = {};
+      for (auto i = 0u; i < 256; ++i) {
+          auto p = pal->at(i);
+          if (p.R == p.G && p.G == p.B) {
+              auto b = (unsigned)p.R;
+              if (!seen[b]) {
+                  PalGrayscaleColors.push_back(p);
+                  seen[b] = true;
+              }
+          }
+      }
+      if (PalGrayscaleColors.empty()) {
+          // fallback: generate full grayscale ramp
+          for (auto i = 0; i < 256; ++i)
+              PalGrayscaleColors.push_back(Pixel((uint8_t)i, (uint8_t)i, (uint8_t)i));
+      }
+      sort(PalGrayscaleColors.begin(), PalGrayscaleColors.end(), [](const Pixel& a, const Pixel& b) { return a.R < b.R; });
+  }
   for (auto& G : ToRender) {
     if (G->HasBmp != 2)
       continue;
@@ -178,6 +201,42 @@ void Font::RenderGlyphs() {
       G->Bmp = move(Bmp);
     }
     MaxH = max(MaxH, G->Bmp.Height());
+    // Optional: brightness mapping via provided palette (before outlining)
+    if (DoBrightnessShift && G->HasBmp == 2 && pal != nullptr) {
+      auto W = G->Bmp.Width();
+      auto H = G->Bmp.Height();
+      for (auto y = 0u; y < H; ++y) {
+        for (auto x = 0u; x < W; ++x) {
+          auto& px = G->Bmp[y][x];
+          bool isBg = (px.R == G->BgCol.R && px.G == G->BgCol.G && px.B == G->BgCol.B);
+#ifdef BMP_ALPHA
+          isBg = isBg && (px.A == 0);
+#endif
+          if (isBg)
+            continue;
+          // encode to palette index, then restore exact palette color
+          auto idx = (int) pal->Encode(px);
+          Pixel restored = pal->at((unsigned) idx);
+          // find closest position in gray ramp by brightness
+          auto it = lower_bound(PalGrayscaleColors.begin(), PalGrayscaleColors.end(), restored.R,
+            [](const Pixel& a, uint8_t v){ return a.R < v; });
+          size_t pos;
+          if (it == PalGrayscaleColors.end()) pos = PalGrayscaleColors.size() - 1;
+          else pos = (size_t)(it - PalGrayscaleColors.begin());
+          // pick nearer neighbor if previous is closer
+          if (pos > 0) {
+            auto lo = pos - 1;
+            if (abs((int)PalGrayscaleColors[lo].R - (int)restored.R) < abs((int)PalGrayscaleColors[pos].R - (int)restored.R))
+              pos = lo;
+          }
+          // apply brightness shift (positive => brighter)
+          int npos = (int)pos + BrightnessShiftOffset;
+          if (npos < 0) npos = 0;
+          if (npos >= (int)PalGrayscaleColors.size()) npos = (int)PalGrayscaleColors.size() - 1;
+          px = PalGrayscaleColors[(size_t)npos];
+        }
+      }
+    }
     // Optional: add 1-pixel outline around glyph shape (not bitmap border)
     if (G->DoOutlineGlyphs && G->HasBmp == 2) {
       auto W = G->Bmp.Width();
