@@ -178,6 +178,57 @@ void Font::RenderGlyphs() {
       G->Bmp = move(Bmp);
     }
     MaxH = max(MaxH, G->Bmp.Height());
+    // Optional: add 1-pixel outline around glyph shape (not bitmap border)
+    if (G->DoOutlineGlyphs && G->HasBmp == 2) {
+      auto W = G->Bmp.Width();
+      auto H = G->Bmp.Height();
+      if (W && H) {
+        // outline color components (0xRRGGBB)
+        unsigned oc = G->OutlineColor;
+        unsigned char orc = (oc >> 16) & 0xFF;
+        unsigned char ogc = (oc >> 8) & 0xFF;
+        unsigned char obc = oc & 0xFF;
+        // Make a copy to sample original pixels
+        auto Orig = G->Bmp;
+        for (auto y = 0u; y < H; ++y) {
+          for (auto x = 0u; x < W; ++x) {
+            auto& p = Orig[y][x];
+            bool isBg = (p.R == G->BgCol.R && p.G == G->BgCol.G && p.B == G->BgCol.B);
+#ifdef BMP_ALPHA
+            isBg = isBg && (p.A == 0);
+#endif
+            if (!isBg)
+              continue;
+            bool near = false;
+            for (int dy = -1; dy <= 1 && !near; ++dy) {
+              for (int dx = -1; dx <= 1; ++dx) {
+                if (dx == 0 && dy == 0)
+                  continue;
+                int nx = (int)x + dx;
+                int ny = (int)y + dy;
+                if (nx < 0 || ny < 0 || nx >= (int)W || ny >= (int)H)
+                  continue;
+                auto& np = Orig[ny][nx];
+                bool nIsBg = (np.R == G->BgCol.R && np.G == G->BgCol.G && np.B == G->BgCol.B);
+#ifdef BMP_ALPHA
+                nIsBg = nIsBg && (np.A == 0);
+#endif
+                if (!nIsBg) { near = true; break; }
+              }
+            }
+            if (near) {
+              auto& dst = G->Bmp[y][x];
+              dst.R = orc;
+              dst.G = ogc;
+              dst.B = obc;
+#ifdef BMP_ALPHA
+              dst.A = 255;
+#endif
+            }
+          }
+        }
+      }
+    }
   }
   if (!LnSpacing)
     LnSpacing = ceil((float)(MaxH - MaxDescent * 10 / HeightConstant)) + LnSpacingOff;

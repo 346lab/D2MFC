@@ -21,10 +21,11 @@ partitionConfig:
       glyphColor: 0xffffff
       bgColor: 0x000000
       tblUnknownValueTwo: 1 # unknown value in tbl entry, mostly 0x01
-      sharpeningLevel: null # not implemented yet: a fix for bad hinting
-      extraConfig:
-      - reservel: null
-        reserve2: null
+      doOutlineGlyphs: true
+      outlineColor: 0x0c0c08
+      # extraConfig:
+      # - reservel: null
+      #   reserve2: null
     - # Universal: 0100 - FFFE
       start: 0x0100
       end: 0xFFFE
