@@ -68,6 +68,8 @@ int main(int NArg, char* Args[]) {
   int32_t descentPadding = Fnt.DescentPadding;
   if (d["descentPadding"] && !d["descentPadding"].IsNull()) descentPadding = d["descentPadding"].as<int>();
   int globalTblUnk = d["tblUnknownValue"] ? d["tblUnknownValue"].as<int>() : 0;
+  auto doBrightnessShift = d["doBrightnessShift"] ? d["doBrightnessShift"].as<bool>() : false;
+  auto brightnessShiftOffset = d["brightnessShiftOffset"] ? d["brightnessShiftOffset"].as<unsigned>() : 0;
 
   // Partition-based config (preferred)
   printf("Preparing glyphs...\n");
@@ -144,11 +146,13 @@ int main(int NArg, char* Args[]) {
   Fnt.OriginOffset = originOffset;
   Fnt.DescentPadding = descentPadding;
   Fnt.UnkHZ = globalTblUnk;
-  printf("Rendering glyphs...\n");
-  Fnt.RenderGlyphs();
+  Fnt.DoBrightnessShift = doBrightnessShift;
+  Fnt.BrightnessShiftOffset = brightnessShiftOffset;
   printf("Reading palette...\n");
   Palette Pal;
   Pal.ReadDat(palPath.data());
+  printf("Rendering glyphs...\n");
+  Fnt.RenderGlyphs(&Pal);
   printf("Dumping font...\n");
   Sprite Spr;
   FontTable Tbl;

@@ -9,7 +9,12 @@ capHeightOffset: 0                    # cap height in tbl header: "size[0] + off
 leadingFactor: 17                     # vary with language, ENG/KOR/RUS = 17, CHI = 14， JPN = 15， POL = 13
 originOffset: 0
 dc6OffsetY: 0
+
+doBrightnessShift: false
+brightnessShiftOffset: 0
+
 invalidGlyphIndex: 0                  # dc6Index to refer for invalid glyphs. You can use 248(o with slash) or 63(?) when you have full Latin glyphs generated
+
 partitionConfig:
   # Leading (Line spacing) depends on first partition font size: "size[0] + leadingoffset - maxDescent"
     - # Latin: 0000 - 00FF
